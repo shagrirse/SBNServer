@@ -15,10 +15,7 @@ server.register(require('@fastify/cookie'), {
     hook: 'onRequest', // set to false to disable cookie autoparsing or set autoparsing on any of the following hooks: 'onRequest', 'preParsing', 'preHandler', 'preValidation'. default: 'onRequest'
     parseOptions: {
         path: '/', // Set the path to which the cookie belongs
-        secure: true, // Ensures the cookie is sent only over HTTPS
-        httpOnly: true, // Prevents client-side JavaScript access
-        sameSite: 'none', // Helps protect against CSRF attacks
-        signed: false
+        maxAge: 1, // Set the expiration time of the cookie in seconds
         // Other options like 'maxAge', 'expires', etc., can be set as needed
     }  // options for parsing cookies
 } as FastifyCookieOptions)

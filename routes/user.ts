@@ -2,7 +2,7 @@ import { FastifyInstance, RouteShorthandOptions } from 'fastify';
 import { supabase } from '../lib/supabaseClient'
 import { UserDetails } from '../interfaces'
 import { UserDetailsSchema, SigninSchema } from '../lib/validation'
-import { AuthError } from '@supabase/supabase-js';
+
 // https://supabase.com/docs/reference/javascript/auth-getsession
 // Implement on front-end to store session in store and refresh when expired
 const userRoutes = async (fastify: FastifyInstance) => {
@@ -37,6 +37,7 @@ const userRoutes = async (fastify: FastifyInstance) => {
                 email: requestData.email,
                 password: requestData.password,
             })
+            console.log(user)
             if (error) {
                 throw new Error(error.message);
             } else if (!user) {
@@ -53,9 +54,9 @@ const userRoutes = async (fastify: FastifyInstance) => {
         try {
             // get cookie from request
             
-  reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
-  reply.header('Pragma', 'no-cache');
-  reply.header('Expires', '0');
+            reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+            reply.header('Pragma', 'no-cache');
+            reply.header('Expires', '0');
             const cookie = request.cookies.access_token;
             console.log(request)
             //const { data: user, error } = await supabase.auth.getUser(request.headers.authorization?.split//(' ')[1] || '');
