@@ -1,17 +1,17 @@
 import { FastifyInstance, RouteShorthandOptions } from 'fastify';
+import z from 'zod';
+import verifyJwt from '../lib/auth/verifyJwt';
 import { supabase } from '../lib/supabaseClient'
-import { UserDetails } from '../interfaces'
-import { UserDetailsSchema, SigninSchema } from '../lib/validation'
+import { PostDetails } from '../interfaces'
+import { EditPostSchema, PostSchema } from '../lib/validation'
+import { parse } from 'path';
 
 // https://supabase.com/docs/reference/javascript/auth-getsession
 // Implement on front-end to store session in store and refresh when expired
 const postRoutes = async (fastify: FastifyInstance) => {
     fastify.get('/api/posts', async (request, reply) => {
         // Check auth
-        const { data: user, error: authError } = await supabase.auth.getUser(request.cookies.access_token);
-        if (authError || !user) {
-            reply.status(401).send({ "message": "Authentication failure" })
-        }
+        const user = await verifyJwt(request, reply);
         // Row level security policy implemented to only allow authenticated users to view posts
         const { data, error } = await supabase.from('posts').select('*');
         if (error) {
@@ -20,25 +20,63 @@ const postRoutes = async (fastify: FastifyInstance) => {
         reply.status(200).send({ "data": data })
     });
     fastify.post('/api/posts', async (request, reply) => {
-        const requestData = request.body as UserDetails;
+        // Check auth
+        const user = await verifyJwt(request, reply);
+        const requestData = request.body as PostDetails;
         try {
-            UserDetailsSchema.parse(requestData);
-            const { data: user, error } = await supabase.auth.signUp({
-                email: requestData.email,
-                password: requestData.password,
-            })
-            const { data, error: insertError } = await supabase.from('profiles').insert(
-                {
-                    id: user.user?.id, first_name: requestData.first_name, last_name: requestData.last_name
-                })
-            if (insertError || error) {
-                throw new Error(error?.message || insertError?.message || 'An error occurred');
+            const insertData = 
+            {
+                title: requestData.title, body: requestData.body, user_uuid: user.sub
+            }
+            PostSchema.parse(insertData);
+            const { data, error } = await supabase.from('posts').insert(insertData)
+            if (error) {
+                throw new Error(error.message);
             }
         } catch (error: any) {
             console.log(error.message)
-            reply.status(500).send({ "message": error.message })
+            reply.status(500).send({ "message": "An error has occurred" })
         }
-        reply.status(200).send({ "message": "User Created Successfully" })
+        reply.status(200).send({ "message": "Post Created Successfully" })
+    });
+
+    fastify.put('/api/posts/:id', async (request, reply) => {
+        // Check auth
+        const user = await verifyJwt(request, reply);
+        const requestData = request.body as PostDetails;
+        const id = (request as any).params.id;
+        try {
+            const updateData = 
+            {
+                title: requestData.title, body: requestData.body, id: parseInt(id)
+            }
+            EditPostSchema.parse(updateData);
+            const { data, error } = await supabase.from('posts').update(updateData).match({ id: id }).eq('user_uuid', user.sub)
+            if (error) {
+                throw new Error(error.message);
+            }
+        } catch (error: any) {
+            console.log(error.message)
+            reply.status(500).send({ "message": "An error has occurred" })
+        }
+        reply.status(200).send({ "message": "Post Updated Successfully" })
+    });
+
+    fastify.delete('/api/posts/:id', async (request, reply) => {
+        // Check auth
+        const user = await verifyJwt(request, reply);
+        const id = (request as any).params.id;
+        try {
+            z.number().parse(parseInt(id));
+            const { data, error } = await supabase.from('posts').delete().match({ id }).eq('user_uuid', user.sub)
+            if (error) {
+                throw new Error(error.message);
+            }
+        } catch (error: any) {
+            console.log(error.message)
+            reply.status(500).send({ "message": "An error has occurred" })
+        }
+        reply.status(200).send({ "message": "Post Deleted Successfully" })
     });
 };
 

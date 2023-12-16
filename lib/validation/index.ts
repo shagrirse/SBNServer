@@ -17,3 +17,9 @@ export const PostSchema = z.object({
     body: z.string(),
     user_uuid: z.string().uuid(),
 })
+
+export const EditPostSchema = z.object({
+    title: z.string(),
+    body: z.string(),
+    id: z.number(),
+})
