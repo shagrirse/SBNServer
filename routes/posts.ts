@@ -1,13 +1,9 @@
-import { FastifyInstance, RouteShorthandOptions } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import z from 'zod';
 import verifyJwt from '../lib/auth/verifyJwt';
 import { supabase } from '../lib/supabaseClient'
 import { PostDetails } from '../interfaces'
 import { EditPostSchema, PostSchema } from '../lib/validation'
-import { parse } from 'path';
-
-// https://supabase.com/docs/reference/javascript/auth-getsession
-// Implement on front-end to store session in store and refresh when expired
 const postRoutes = async (fastify: FastifyInstance) => {
     fastify.get('/api/posts', async (request, reply) => {
         // Check auth
