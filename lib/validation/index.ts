@@ -13,8 +13,8 @@ export const SigninSchema = z.object({
 })
 
 export const PostSchema = z.object({
-    title: z.string(),
-    body: z.string(),
+    title: z.string().min(1),
+    body: z.string().min(1),
     user_uuid: z.string().uuid(),
 })
 

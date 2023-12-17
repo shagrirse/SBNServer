@@ -2,12 +2,18 @@
 import fastify from 'fastify'; // Import Fastify
 import cors from '@fastify/cors'; // Import CORS plugin
 import registerRoutes from './routes'; // Import routes
+import fastifyMultipart from '@fastify/multipart'
 
+const fs = require('node:fs')
+const util = require('node:util')
+const { pipeline } = require('node:stream')
+const pump = util.promisify(pipeline)
 // Import types
 import { FastifyCookieOptions } from '@fastify/cookie';
 
 // Create a Fastify server instance
 const server = fastify();
+server.register(fastifyMultipart)
 
 // Register CORS plugin to enable Cross-Origin Resource Sharing
 server.register(cors, {

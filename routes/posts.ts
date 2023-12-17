@@ -6,14 +6,23 @@ import { PostDetails } from '../interfaces'
 import { EditPostSchema, PostSchema } from '../lib/validation'
 const postRoutes = async (fastify: FastifyInstance) => {
     fastify.get('/api/posts', async (request, reply) => {
-        // Check auth
-        const user = await verifyJwt(request, reply);
-        // Row level security policy implemented to only allow authenticated users to view posts
-        const { data, error } = await supabase.from('posts').select('*');
-        if (error) {
-            throw new Error(error.message);
+        try {
+            // Check auth
+            const user = await verifyJwt(request, reply);
+            // Row level security policy implemented to only allow authenticated users to view posts
+            const { data, error } = await supabase.from('posts').select(
+                `
+                id, title, body, created_at, user: user_uuid ( id, first_name, last_name )
+                `
+            );
+            if (error) {
+                throw new Error(error.message);
+            }
+            reply.status(200).send({ "data": data })
+        } catch (error: any) {
+            console.log(error)
+            reply.status(500).send({ "message": "An error has occurred" })
         }
-        reply.status(200).send({ "data": data })
     });
     fastify.post('/api/posts', async (request, reply) => {
         // Check auth
@@ -24,6 +33,7 @@ const postRoutes = async (fastify: FastifyInstance) => {
             {
                 title: requestData.title, body: requestData.body, user_uuid: user.sub
             }
+            console.log(insertData)
             PostSchema.parse(insertData);
             const { data, error } = await supabase.from('posts').insert(insertData)
             if (error) {

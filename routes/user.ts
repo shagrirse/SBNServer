@@ -1,8 +1,10 @@
 // Import necessary modules and interfaces
 import { FastifyInstance } from 'fastify';
 import { supabase } from '../lib/supabaseClient'; // Import Supabase client instance
+import verifyJwt from '../lib/auth/verifyJwt';
 import { UserDetails } from '../interfaces'; // Import UserDetails interface
 import { UserDetailsSchema, SigninSchema } from '../lib/validation'; // Import validation schemas
+import { uploadStream } from '../lib/cloudinaryClient';
 
 // Define userRoutes function that handles user-related routes
 const userRoutes = async (fastify: FastifyInstance) => {
@@ -69,6 +71,43 @@ const userRoutes = async (fastify: FastifyInstance) => {
             reply.status(500).send({ "message": error.message });
         }
     });
+
+    fastify.get('/api/users/me', async (request, reply) => {
+        // Check auth
+        const user = await verifyJwt(request, reply);
+        try {
+            const { data, error } = await supabase.from('profiles').select(`
+                id, first_name, last_name, image_url
+            `).eq('id', user.sub)
+            if (error) {
+                throw new Error(error.message);
+            }
+            reply.status(200).send({ "data": data })
+        } catch (error: any) {
+            console.log(error)
+            reply.status(500).send({ "message": "An error has occurred" })
+        }
+    });
+
+    fastify.post('/api/users/image', async (request, reply) => {
+        // Check auth
+        const user = await verifyJwt(request, reply);
+        const requestData = await request.file();
+        // Read as byte array buffer
+        try {
+            const buffer = await requestData?.toBuffer();
+            const upload: any = await uploadStream(buffer);
+            const { data: updateData, error: updateError } = await supabase.from('profiles').update({ image_url: upload.secure_url }).eq('id', user.sub)
+            if (updateError) {
+                throw new Error(updateError.message);
+            }
+            reply.status(200).send({ "data": upload.secure_url })
+        } catch (error: any) {
+            console.log(error)
+            reply.status(500).send({ "message": "An error has occurred" })
+        }
+    });
+
 };
 
 // Export userRoutes function as the default export
